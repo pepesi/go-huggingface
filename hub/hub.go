@@ -1,45 +1,22 @@
 // Package hub can be used to download files from HuggingFace Hub, which may
 // be models, tokenizers or anything.
 //
-// It is meant to be a port of huggingFace_hub python library to Go.
-//
-// The main functionality is provided by the `Download` method.
-//
-// Features supported:
-//
-// * Cache system that maches HuggingFace Hub (so same cache can be shared with Python).
-// * Locked files (to guarantee only one download when multiple workers are trying to download simultaneously the same model).
-// * Allow arbitrary progress function to be called (for progress bar).
-// * Arbitrary revision.
-//
-// TODOs:
-//
-// * Add support for optional parameters.
-// * Authentication tokens: should be relatively easy.
-// * Resume downloads from interrupted connections.
-// * Check disk-space before starting to download.
+// It is meant to be a port of huggingFace_hub python library to Go, and be able to share the same
+// cache structure (usually under "~/.cache/huggingface/hub").
 package hub
 
 import (
-	"bytes"
-	"context"
 	"fmt"
+	"github.com/gomlx/go-huggingface"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
-	"io"
-	"math/rand"
-	"net/http"
 	"os"
 	"path"
-	"path/filepath"
 	"runtime"
-	"strconv"
 	"strings"
-	"syscall"
-	"text/template"
-	"time"
 )
 
+// SessionId is unique and always created anew at the start of the program, and used during the life of the program.
 var SessionId string
 
 // panicf generates an error message and panics with it, in one function.
@@ -65,10 +42,7 @@ var (
 )
 
 const (
-	// Versions, as of the time of this writing.
-	transformersVersion = "4.34.1"
-	hubVersion          = "0.17.3"
-	tokenizersVersion   = "0.0.1"
+	tokenizersVersion = "0.0.1"
 )
 
 const (
@@ -85,6 +59,18 @@ func getEnvOr(key, defaultValue string) string {
 	return v
 }
 
+// fileExists returns true if file or directory exists.
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true
+	}
+	if errors.Is(err, os.ErrNotExist) {
+		return false
+	}
+	panic(err)
+}
+
 // DefaultCacheDir for HuggingFace Hub, same used by the python library.
 //
 // Its prefix is either `${XDG_CACHE_HOME}` if set, or `~/.cache` otherwise. Followed by `/huggingface/hub/`.
@@ -95,57 +81,26 @@ func DefaultCacheDir() string {
 	return cacheDir
 }
 
-// HttpUserAgent returns a user agent to use with HuggingFace Hub API.
-// Loosely based on https://github.com/huggingface/transformers/blob/main/src/transformers/utils/hub.py#L198.
-func HttpUserAgent() string {
-	return fmt.Sprintf("transfomers/%v; golang/%s; session_id/%s; gomlx_tokenizers/%v; hf_hub/%s",
-		transformersVersion, runtime.Version(), SessionId, tokenizersVersion, hubVersion)
+// DefaultHttpUserAgent returns a user agent to use with HuggingFace Hub API.
+func DefaultHttpUserAgent() string {
+	return fmt.Sprintf("go-huggingface/%v; golang/%s; session_id/%s",
+		huggingface.Version, runtime.Version(), SessionId)
 }
 
 // RepoIdSeparator is used to separate repository/model names parts when mapping to file names.
 // Likely only for internal use.
 const RepoIdSeparator = "--"
 
-// RepoFolderName returns a serialized version of a hf.co repo name and type, safe for disk storage
-// as a single non-nested folder.
-//
-// Based on github.com/huggingface/huggingface_hub repo_folder_name.
-func RepoFolderName(repoId, repoType string) string {
-	parts := []string{repoType + "s"}
-	parts = append(parts, strings.Split(repoId, "/")...)
-	return strings.Join(parts, RepoIdSeparator)
-}
+// RepoType supported by HuggingFace-Hub
+type RepoType string
 
-var (
-	RepoTypesUrlPrefixes = map[string]string{
-		"dataset": "datasets/",
-		"space":   "spaces/",
-	}
-
-	DefaultRevision = "main"
-
-	HuggingFaceUrlTemplate = template.Must(template.New("hf_url").Parse(
-		"https://huggingface.co/{{.RepoId}}/resolve/{{.Revision}}/{{.Filename}}"))
+const (
+	RepoTypeDataset RepoType = "datasets"
+	RepoTypeSpace   RepoType = "spaces"
+	RepoTypeModel   RepoType = "models"
 )
 
-// GetUrl is based on the `hf_hub_url` function defined in the [huggingface_hub](https://github.com/huggingface/huggingface_hub) library.
-func GetUrl(repoId, fileName, repoType, revision string) string {
-	if prefix, found := RepoTypesUrlPrefixes[repoType]; found {
-		repoId = prefix + repoId
-	}
-	if revision == "" {
-		revision = DefaultRevision
-	}
-	var buf bytes.Buffer
-	err := HuggingFaceUrlTemplate.Execute(&buf,
-		struct{ RepoId, Revision, Filename string }{repoId, revision, fileName})
-	if err != nil {
-		panicf("HuggingFaceUrlTemplate failed (!? pls report the bug, this shouldn't happen) with %+v", err)
-	}
-	url := buf.String()
-	return url
-}
-
+/*
 // GetHeaders is based on the `build_hf_headers` function defined in the [huggingface_hub](https://github.com/huggingface/huggingface_hub) library.
 // TODO: add support for authentication token.
 func GetHeaders(userAgent, token string) map[string]string {
@@ -154,9 +109,9 @@ func GetHeaders(userAgent, token string) map[string]string {
 	}
 }
 
-// ProgressFn is a function called while downloading a file.
-// It will be called with `progress=0` and `downloaded=0` at the first call, when download starts.
-type ProgressFn func(progress, downloaded, total int, eof bool)
+// ProgressFn is called synchronously when downloading.
+// If UI can block, make sure to run it on a separate go-routine.
+type ProgressFn func(downloaded, total int, eof bool)
 
 // progressReader implements a reader that calls progressFn after each read.
 type progressReader struct {
@@ -173,8 +128,9 @@ func (r *progressReader) Read(dst []byte) (n int, err error) {
 		// No progress.
 		return
 	}
-	r.progressFn(n, r.downloaded, r.total, err == io.EOF)
-	return
+	if r.progressFn != nil {
+		r.progressFn(r.downloaded, r.total, err == io.EOF)
+	}
 }
 
 // Download returns file either from cache or by downloading from HuggingFace Hub.
@@ -183,22 +139,27 @@ func (r *progressReader) Read(dst []byte) (n int, err error) {
 //
 // Args:
 //
-//   - `ctx` for the requests. There may be more than one request, the first being an `HEAD` HTTP.
-//   - `client` used to make HTTP requests. I can be created with `&httpClient{}`.
-//   - `repoId` and `fileName`: define the file and repository (model) name to download.
-//   - `repoType`: usually "model".
-//   - `revision`: default is "main", but a commitHash can be given.
-//   - `cacheDir`: directory where to store the downloaded files, or reuse if previously downloaded.
+//   - ctx for the requests. There may be more than one request, the first being an `HEAD` HTTP.
+//   - client used to make HTTP requests. It can be created with `&httpClient{}`.
+//   - repoId and fileName: define the file and repository (model) name to download.
+//   - repoType: usually RepoTypeModel.
+//   - fileName: the fileName within the repository to download.
+//   - revision: default is "main", but a commitHash can be given.
+//   - cacheDir: directory where to store the downloaded files, or reuse if previously downloaded.
 //     Consider using the output from `DefaultCacheDir()` if in doubt.
-//   - `token`: used for authentication. TODO: not implemented yet.
-//   - `forceDownload`: if set to true, it will download the contents of the file even if there is a local copy.
-//   - `localOnly`: does not use network, not even for reading the metadata.
-//   - `progressFn`: is called during the download of a file. It is called synchronously and expected to be fast/
-//     instantaneous. If the UI can be blocking, arrange it to be handled on a separate GoRoutine.
+//   - token: used for authentication.
+//   - forceDownload: if set to true, it will download the contents of the file even if there is a local copy.
+//   - localOnly: does not use network, not even for reading the metadata.
+//   - progressFn: if not nil, it is called synchronously during download. If the UI can be blocking, arrange it to
+//     be handled on a separate goroutine.
 //
-// On success it returns the `filePath` to the downloaded file, and its `commitHash`. Otherwise it returns an error.
+// On success it returns:
+//
+//   - `filePath`: points to the downloaded file within the global huggingface cache -- should be used for reading
+//     only, since other processes/workers/programs may share the file.
+//   - commitHash: hash of the file downloaded.
 func Download(ctx context.Context, client *http.Client,
-	repoId, repoType, revision, fileName, cacheDir, token string,
+	repoId string, repoType RepoType, revision string, fileName, cacheDir, token string,
 	forceDownload, forceLocal bool, progressFn ProgressFn) (filePath, commitHash string, err error) {
 	if cacheDir == "" {
 		err = errors.New("Download() requires a cacheDir, even if temporary, to store the results of the download")
@@ -212,7 +173,7 @@ func Download(ctx context.Context, client *http.Client,
 			fileName, repoId)
 		return
 	}
-	folderName := RepoFolderName(repoId, repoType)
+	folderName := RepoFlatFolderName(repoId, repoType)
 
 	// Find storage directory and if necessary create directories on disk.
 	storageDir := path.Join(cacheDir, folderName)
@@ -233,7 +194,7 @@ func Download(ctx context.Context, client *http.Client,
 			return
 		}
 		filePath = getSnapshotPath(storageDir, commitHash, relativeFilePath)
-		if !FileExists(filePath) {
+		if !fileExists(filePath) {
 			err = errors.Errorf("Download() with forceLocal, but file %q from repo %q not found in cache -- should be in %q", fileName, repoId, filePath)
 			return
 		}
@@ -291,13 +252,13 @@ func Download(ctx context.Context, client *http.Client,
 	}
 
 	// Use snapshot cached file, if available.
-	if FileExists(snapshotPath) && !forceDownload {
+	if fileExists(snapshotPath) && !forceDownload {
 		filePath = snapshotPath
 		return
 	}
 
 	// If the generic blob is available (downloaded under a different name), link it and use it.
-	if FileExists(blobPath) && !forceDownload {
+	if fileExists(blobPath) && !forceDownload {
 		// ... create link
 		err = createSymLink(snapshotPath, blobPath)
 		if err != nil {
@@ -313,7 +274,7 @@ func Download(ctx context.Context, client *http.Client,
 	// Lock file to avoid parallel downloads.
 	lockPath := blobPath + ".lock"
 	errLock := execOnFileLock(ctx, lockPath, func() {
-		if FileExists(blobPath) && !forceDownload {
+		if fileExists(blobPath) && !forceDownload {
 			// Some other process (or goroutine) already downloaded the file.
 			return
 		}
@@ -487,7 +448,7 @@ func cacheCommitHashForSpecificRevision(storageDir, commitHash, revision string)
 	if err != nil {
 		return errors.Wrap(err, "failed to create reference subdirectory in cache")
 	}
-	if FileExists(refPath) {
+	if fileExists(refPath) {
 		contents, err := os.ReadFile(refPath)
 		if err != nil {
 			return errors.Wrapf(err, "failed reading %q", refPath)
@@ -511,7 +472,7 @@ func cacheCommitHashForSpecificRevision(storageDir, commitHash, revision string)
 // Notice revision can be a commitHash: if we don't find a revision file, we assume that is the case.
 func readCommitHashForRevision(storageDir, revision string) (commitHash string, err error) {
 	refPath := path.Join(storageDir, "refs", revision)
-	if !FileExists(refPath) {
+	if !fileExists(refPath) {
 		commitHash = revision
 		return
 	}
@@ -524,18 +485,6 @@ func readCommitHashForRevision(storageDir, revision string) (commitHash string, 
 	}
 	commitHash = strings.Trim(string(contents), "\n")
 	return
-}
-
-// FileExists returns true if file or directory exists.
-func FileExists(path string) bool {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true
-	}
-	if errors.Is(err, os.ErrNotExist) {
-		return false
-	}
-	panic(err)
 }
 
 // createSymlink creates a symbolic link named dst pointing to src, using a relative path if possible.
@@ -561,52 +510,4 @@ func createSymLink(dst, src string) error {
 	}
 	return err
 }
-
-// onFileLock locks the given file, executes the function, unlocks again and returns.
-func execOnFileLock(ctx context.Context, lockPath string, fn func()) (err error) {
-	var f *os.File
-	f, err = os.OpenFile(lockPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, DefaultFileCreationPerm)
-	if err != nil {
-		err = errors.Wrapf(err, "while locking %q", lockPath)
-		return
-	}
-	defer f.Close()
-
-	// Acquire lock or return an error if context is canceled (due to time out).
-	for {
-		err = syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
-		if err == nil {
-			break
-		}
-		if !errors.Is(err, syscall.EAGAIN) {
-			err = errors.Wrapf(err, "while locking %q", lockPath)
-			return err
-		}
-
-		// Wait from 1 to 2 seconds.
-		timeDuration := time.Millisecond * time.Duration(1000+rand.Intn(1000))
-		select {
-		case <-ctx.Done():
-			err = errors.Errorf("context cancelled (timedout?) while waiting for lock to download %q", lockPath)
-			return
-		case <-time.NewTimer(timeDuration).C:
-			// Nothing, just continues to the next attempt.
-		}
-	}
-
-	// Setup clean up in a deferred function, so it happens even if `fn()` panics.
-	defer func() {
-		err = os.Remove(lockPath)
-		if err != nil {
-			err = syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
-		}
-		if err != nil {
-			err = errors.Wrapf(err, "unlocking and removing file %q", lockPath)
-		}
-	}()
-
-	// We got the lock, run the function.
-	fn()
-
-	return
-}
+*/
