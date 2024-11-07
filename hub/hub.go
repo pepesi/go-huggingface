@@ -1,5 +1,7 @@
-// Package huggingfacehub can be used to download models and tokenizers from HuggingFace Hub,
-// it is a port of huggingFace_hub python library to Go.
+// Package hub can be used to download files from HuggingFace Hub, which may
+// be models, tokenizers or anything.
+//
+// It is meant to be a port of huggingFace_hub python library to Go.
 //
 // The main functionality is provided by the `Download` method.
 //
@@ -16,8 +18,7 @@
 // * Authentication tokens: should be relatively easy.
 // * Resume downloads from interrupted connections.
 // * Check disk-space before starting to download.
-
-package huggingfacehub
+package hub
 
 import (
 	"bytes"
