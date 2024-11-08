@@ -117,9 +117,9 @@ func (r *Repo) flatFolderName() string {
 	return strings.Join(parts, RepoIdSeparator)
 }
 
-// repoCache joins cacheDir and flatFolderName to return the cache sub-directory for the repository.
+// repoCacheDir joins cacheDir and flatFolderName to return the cache sub-directory for the repository.
 // It also creates the directory, and returns an error if creation failed.
-func (r *Repo) repoCache() (string, error) {
+func (r *Repo) repoCacheDir() (string, error) {
 	dir := path.Join(r.cacheDir, r.flatFolderName())
 	err := os.MkdirAll(dir, DefaultDirCreationPerm)
 	if err != nil {
@@ -131,19 +131,39 @@ func (r *Repo) repoCache() (string, error) {
 // FileURL returns the URL from which to download the file from HuggingFace.
 //
 // Usually, not used directly (use DownloadFile instead), but in case someone needs for debugging.
-func (r *Repo) FileURL(fileName string) string {
-	return fmt.Sprintf("https://huggingface.co/%s/%s/resolve/%s/%s",
-		r.repoType, r.ID, r.revision, fileName)
+func (r *Repo) FileURL(fileName string) (string, error) {
+	commitHash, err := r.readCommitHashForRevision()
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("https://huggingface.co/%s/resolve/%s/%s", r.ID, commitHash, fileName), nil
 }
 
 // readCommitHashForRevision finds the commit-hash for the revision, it should already be written to disk.
 // The revision can be itself a commit-hash, in which case it is returned directly.
 //
-// repoCacheDir is returned by Repo.repoCache().
+// repoCacheDir is returned by Repo.repoCacheDir().
 func (r *Repo) readCommitHashForRevision() (string, error) {
 	err := r.DownloadInfo(false)
 	if err != nil {
 		return "", err
 	}
 	return r.info.CommitHash, nil
+}
+
+// repoSnapshotsDir returns the snapshots directory for this repo at its revision.
+func (r *Repo) repoSnapshotsDir() (string, error) {
+	cacheDir, err := r.repoCacheDir()
+	if err != nil {
+		return "", err
+	}
+	commitHash, err := r.readCommitHashForRevision()
+	if err != nil {
+		return "", err
+	}
+	snapshotsDir := path.Join(cacheDir, "snapshots", commitHash)
+	if err = os.MkdirAll(snapshotsDir, DefaultDirCreationPerm); err != nil {
+		return "", errors.Wrapf(err, "while creating snapshots directory %q", snapshotsDir)
+	}
+	return snapshotsDir, nil
 }

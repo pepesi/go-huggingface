@@ -1,13 +1,13 @@
 package hub
 
 import (
+	"context"
 	"github.com/gomlx/gomlx/ml/data/downloader"
 	"github.com/pkg/errors"
-	"io"
 	"log"
 	"math/rand"
 	"os"
-	"sync"
+	"path"
 	"syscall"
 	"time"
 )
@@ -29,7 +29,7 @@ func (r *Repo) getDownloadManager() *downloader.Manager {
 // It downloads the file to filePath+".tmp" and then atomically move it to filePath.
 //
 // It uses a temporary filePath+".lock" to coordinate multiple processes/programs trying to download the same file at the same time.
-func (r *Repo) lockedDownload(url, filePath string, progressCallback downloader.ProgressCallback, forceDownload bool) error {
+func (r *Repo) lockedDownload(ctx context.Context, url, filePath string, forceDownload bool, progressCallback downloader.ProgressCallback) error {
 	if fileExists(filePath) {
 		if !forceDownload {
 			return nil
@@ -38,6 +38,16 @@ func (r *Repo) lockedDownload(url, filePath string, progressCallback downloader.
 		if err != nil {
 			return errors.Wrapf(err, "failed to remove %q while force-downloading %q", filePath, url)
 		}
+	}
+
+	// Checks whether context has already been cancelled, and exit immediately.
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	// Create directory for file.
+	if err := os.MkdirAll(path.Dir(filePath), DefaultDirCreationPerm); err != nil {
+		return errors.Wrapf(err, "failed to create directory for file %q", filePath)
 	}
 
 	// Lock file to avoid parallel downloads.
@@ -71,22 +81,8 @@ func (r *Repo) lockedDownload(url, filePath string, progressCallback downloader.
 			}
 		}()
 
-		var wg sync.WaitGroup
-		wg.Add(1)
-		progressFnWrapper := func(downloadedBytes, totalBytes int64, finished bool, progressErr error) {
-			if progressCallback != nil {
-				progressCallback(downloadedBytes, totalBytes, finished, progressErr)
-			}
-			if progressErr != nil && progressErr != io.EOF {
-				mainErr = progressErr
-			}
-			if finished {
-				wg.Done()
-			}
-		}
 		downloadManager := r.getDownloadManager()
-		_ = downloadManager.Download(url, tmpPath, progressFnWrapper)
-		wg.Wait()
+		mainErr = downloadManager.Download(ctx, url, tmpPath, progressCallback)
 		if mainErr != nil {
 			mainErr = errors.WithMessagef(mainErr, "while downloading %q to %q", url, tmpPath)
 			return

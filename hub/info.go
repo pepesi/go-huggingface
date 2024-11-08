@@ -2,6 +2,7 @@ package hub
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/pkg/errors"
@@ -73,7 +74,7 @@ func (r *Repo) DownloadInfo(forceDownload bool) error {
 	}
 
 	// Create directory and file path for the info file.
-	infoFilePath, err := r.repoCache()
+	infoFilePath, err := r.repoCacheDir()
 	if err != nil {
 		return err
 	}
@@ -85,7 +86,7 @@ func (r *Repo) DownloadInfo(forceDownload bool) error {
 
 	// Download info file if needed.
 	if !fileExists(infoFilePath) || forceDownload {
-		err := r.lockedDownload(r.infoURL(), infoFilePath, nil, forceDownload)
+		err := r.lockedDownload(context.Background(), r.infoURL(), infoFilePath, forceDownload, nil)
 		if err != nil {
 			return errors.WithMessagef(err, "failed to download repository info")
 		}
