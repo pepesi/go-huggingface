@@ -18,7 +18,7 @@ type RepoInfo struct {
 	ID          string          `json:"id"`
 	ModelID     string          `json:"model_id"`
 	Author      string          `json:"author"`
-	Revision    string          `json:"sha"`
+	CommitHash  string          `json:"sha"`
 	Tags        []string        `json:"tags"`
 	Siblings    []*FileInfo     `json:"siblings"`
 	SafeTensors SafeTensorsInfo `json:"safetensors"`
@@ -54,11 +54,9 @@ func (r *Repo) Info() *RepoInfo {
 	return r.info
 }
 
-// InfoFileName is the file name used to store the Repo.Info in the cache.
-var InfoFileName = "_info_.json"
-
+// infoURL for the API that returns the info about a repository.
 func (r *Repo) infoURL() string {
-	return fmt.Sprintf("https://huggingface.co/api/%s/%s", r.repoType, r.ID)
+	return fmt.Sprintf("https://huggingface.co/api/%s/%s/revision/%s", r.repoType, r.ID, r.revision)
 }
 
 // DownloadInfo about the model, if it hasn't yet.
@@ -73,11 +71,19 @@ func (r *Repo) DownloadInfo(forceDownload bool) error {
 	if r.info != nil && !forceDownload {
 		return nil
 	}
+
+	// Create directory and file path for the info file.
 	infoFilePath, err := r.repoCache()
 	if err != nil {
 		return err
 	}
-	infoFilePath = path.Join(infoFilePath, InfoFileName)
+	infoFilePath = path.Join(infoFilePath, "info")
+	if err = os.MkdirAll(infoFilePath, DefaultDirCreationPerm); err != nil {
+		return errors.Wrapf(err, "while creating info directory %q", infoFilePath)
+	}
+	infoFilePath = path.Join(infoFilePath, r.revision)
+
+	// Download info file if needed.
 	if !fileExists(infoFilePath) || forceDownload {
 		err := r.lockedDownload(r.infoURL(), infoFilePath, nil, forceDownload)
 		if err != nil {

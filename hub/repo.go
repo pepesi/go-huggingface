@@ -135,3 +135,15 @@ func (r *Repo) FileURL(fileName string) string {
 	return fmt.Sprintf("https://huggingface.co/%s/%s/resolve/%s/%s",
 		r.repoType, r.ID, r.revision, fileName)
 }
+
+// readCommitHashForRevision finds the commit-hash for the revision, it should already be written to disk.
+// The revision can be itself a commit-hash, in which case it is returned directly.
+//
+// repoCacheDir is returned by Repo.repoCache().
+func (r *Repo) readCommitHashForRevision() (string, error) {
+	err := r.DownloadInfo(false)
+	if err != nil {
+		return "", err
+	}
+	return r.info.CommitHash, nil
+}
