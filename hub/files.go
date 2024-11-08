@@ -45,6 +45,24 @@ func (r *Repo) IterFileNames() iter.Seq2[string, error] {
 	}
 }
 
+// HasFile returns whether the repo has given fileName.
+// Notice fileName is relative to the repository, not in local disk.
+//
+// If the Repo hasn't downloaded its info yet, it attempts to download it here.
+// If it fails, it simply return false.
+// Call Repo.DownloadInfo to handle errors downloading the info.
+func (r *Repo) HasFile(fileName string) bool {
+	if r.DownloadInfo(false) != nil {
+		return false
+	}
+	for _, si := range r.info.Siblings {
+		if si.Name == fileName {
+			return true
+		}
+	}
+	return false
+}
+
 // cleanRelativeFilePath returns the repoFileName converted to the local OS separator, and by filtering out paths
 // that reach out of the current directory (with too many ".." elements). for security reasons.
 func cleanRelativeFilePath(repoFileName string) string {

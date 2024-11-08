@@ -167,3 +167,8 @@ func (r *Repo) repoSnapshotsDir() (string, error) {
 	}
 	return snapshotsDir, nil
 }
+
+// String implements fmt.Stringer.
+func (r *Repo) String() string {
+	return r.ID
+}
