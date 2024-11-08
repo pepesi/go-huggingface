@@ -39,6 +39,33 @@ func (r *Repo) IterFileNames() iter.Seq2[string, error] {
 // The returned downloadPaths can be read, but shouldn't be modified, since there may be other programs using the same
 // files.
 func (r *Repo) DownloadFiles(files ...string) (downloadedPaths []string, err error) {
+	if len(files) == 0 {
+		return
+	}
+
+	// Get/create cacheDir.
+	var cacheDir string
+	cacheDir, err = r.repoCache()
+	if err != nil {
+		return nil, err
+	}
+	_ = cacheDir
+
+	// Get commitHash for current revision.
+	var commitHash string
+	commitHash, err = r.readCommitHashForRevision()
+	if err != nil {
+		return nil, err
+	}
 
 	return
+}
+
+// DownloadFile is a shortcut to DownloadFiles with only one file.
+func (r *Repo) DownloadFile(file string) (downloadedPath string, err error) {
+	res, err := r.DownloadFiles(file)
+	if err != nil {
+		return "", err
+	}
+	return res[0], nil
 }

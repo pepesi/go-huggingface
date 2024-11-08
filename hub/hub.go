@@ -101,37 +101,6 @@ const (
 )
 
 /*
-// GetHeaders is based on the `build_hf_headers` function defined in the [huggingface_hub](https://github.com/huggingface/huggingface_hub) library.
-// TODO: add support for authentication token.
-func GetHeaders(userAgent, token string) map[string]string {
-	return map[string]string{
-		"user-agent": userAgent,
-	}
-}
-
-// ProgressFn is called synchronously when downloading.
-// If UI can block, make sure to run it on a separate go-routine.
-type ProgressFn func(downloaded, total int, eof bool)
-
-// progressReader implements a reader that calls progressFn after each read.
-type progressReader struct {
-	reader            io.Reader
-	downloaded, total int
-	progressFn        ProgressFn
-}
-
-// Read implements io.Reader, and report number of bytes read to progressFn.
-func (r *progressReader) Read(dst []byte) (n int, err error) {
-	n, err = r.reader.Read(dst)
-	r.downloaded += n
-	if err != nil && err != io.EOF {
-		// No progress.
-		return
-	}
-	if r.progressFn != nil {
-		r.progressFn(r.downloaded, r.total, err == io.EOF)
-	}
-}
 
 // Download returns file either from cache or by downloading from HuggingFace Hub.
 //
@@ -169,7 +138,7 @@ func Download(ctx context.Context, client *http.Client,
 	userAgent := HttpUserAgent()
 	if token != "" {
 		// TODO, for now no token support.
-		err = errors.Errorf("no support yet for authentication token while attemption to download %q from %q",
+		err = errors.Errorf("no support yet for authentication token while attempting to download %q from %q",
 			fileName, repoId)
 		return
 	}
