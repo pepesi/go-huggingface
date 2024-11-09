@@ -57,7 +57,7 @@ for _, modelID := range hfModelIDs {
 }
 ```
 
-### Tokenize for `google/gemma-2-2b-it`
+### Tokenize for [`google/gemma-2-2b-it`](https://huggingface.co/google/gemma-2-2b-it)
 
 * The output "Downloaded" message happens only the tokenizer file is not yet cached, so only the first time:
 
@@ -79,7 +79,7 @@ Tokens:  	[651 2870 603 611 573 3037 235265]
 ```
 
 
-### Download and execute ONNX model for `sentence-transformers/all-MiniLM-L6-v2`
+### Download and execute ONNX model for [`sentence-transformers/all-MiniLM-L6-v2`](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2)
 
 Only the first 3 lines are actually demoing `go-huggingface`.
 The remainder lines uses [`github.com/gomlx/onnx-gomlx`](https://github.com/gomlx/onnx-gomlx)
