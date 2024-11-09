@@ -30,7 +30,7 @@ var (
 		"KnightsAnalytics/distilbert-NER",
 		"SamLowe/roberta-base-go_emotions-onnx",
 	}
-	hfAuthToken = "..."  // Create your HuggingFace authentication token in huggingface.co, to allow download of models.
+	hfAuthToken = os.Getenv("HF_TOKEN")  // Create your HuggingFace authentication token in huggingface.co, to allow download of models.
 )
 ```
 
