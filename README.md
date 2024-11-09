@@ -59,6 +59,8 @@ for _, modelID := range hfModelIDs {
 
 ### Tokenize for `google/gemma-2-2b-it`
 
+* The output "Downloaded" message happens only the tokenizer file is not yet cached, so only the first time:
+
 ```go
 repo := hub.New("google/gemma-2-2b-it").WithAuth(hfAuthToken)
 tokenizer, err := tokenizers.New(repo)
@@ -70,8 +72,6 @@ fmt.Printf("Sentence:\t%s\n", sentence)
 fmt.Printf("Tokens:  \t%v\n", tokens)
 ```
 
-Output (with the "Downloaded" message that happens only the tokenizer file is not yet cached):
-
 ```
 Downloaded 1/1 files, 4.2 MB downloaded         
 Sentence:	The book is on the table.
@@ -80,6 +80,12 @@ Tokens:  	[651 2870 603 611 573 3037 235265]
 
 
 ### Download and execute ONNX model for `sentence-transformers/all-MiniLM-L6-v2`
+
+Only the first 3 lines are actually demoing `go-huggingface`.
+The remainder lines uses [`github.com/gomlx/onnx-gomlx`](https://github.com/gomlx/onnx-gomlx)
+to parse and convert the ONNX model to GoMLX, and then
+[`github.com/gomlx/gomlx`](github.com/gomlx/gomlx) to execute the converted model
+for a couple of sentences.
 
 ```go
 // Get ONNX model.
@@ -123,8 +129,6 @@ embeddings := context.ExecOnce(
 fmt.Printf("Sentences: \t%q\n", sentences)
 fmt.Printf("Embeddings:\t%s\n", embeddings)
 ```
-
-The output is:
 
 ```
 Sentences: 	["This is an example sentence" "Each sentence is converted"]
