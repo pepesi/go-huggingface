@@ -1,8 +1,10 @@
-# go-huggingface 
+# **go-huggingface**, download, tokenize and convert models from HuggingFace. 
+
+[![GoDev](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white)](https://pkg.go.dev/github.com/gomlx/go-huggingface?tab=doc)
 
 ## 📖 Overview
 
-Simple APIs for downloading (`hub`), tokenizing (`tokenizers`) and (future work) model conversion (`models`) of 
+Simple APIs for downloading (`hub`), tokenizing (`tokenizers`) and (**future work**) model conversion (`models`) of 
 [HuggingFace🤗](huggingface.co) models using [GoMLX](https://github.com/gomlx/gomlx).
 
 🚧 **EXPERIMENTAL and IN DEVELOPMENT**: While the `hub` package has been stable, the `tokenizers` and the future `models` are still
