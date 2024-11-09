@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/gomlx/go-huggingface/internal/files"
 	"github.com/pkg/errors"
 	"log"
 	"os"
@@ -85,7 +86,7 @@ func (r *Repo) DownloadInfo(forceDownload bool) error {
 	infoFilePath = path.Join(infoFilePath, r.revision)
 
 	// Download info file if needed.
-	if !fileExists(infoFilePath) || forceDownload {
+	if !files.Exists(infoFilePath) || forceDownload {
 		err := r.lockedDownload(context.Background(), r.infoURL(), infoFilePath, forceDownload, nil)
 		if err != nil {
 			return errors.WithMessagef(err, "failed to download repository info")

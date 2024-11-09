@@ -5,11 +5,11 @@ package api
 
 // Tokenizer interface allows one convert test to "tokens" (integer ids) and back.
 //
-// It also allows mapping of special tokens: tokens with a comman semantic (like padding) but that
+// It also allows mapping of special tokens: tokens with a common semantic (like padding) but that
 // may map to different ids (int) for different tokenizers.
 type Tokenizer interface {
-	EncodeAsIDs(text string) []int
-	DecodeIDs([]int) string
+	Encode(text string) []int
+	Decode([]int) string
 
 	// SpecialTokenID returns ID for given special token if registered, or an error if not.
 	SpecialTokenID(token SpecialToken) (int, error)

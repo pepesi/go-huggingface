@@ -2,7 +2,8 @@ package hub
 
 import (
 	"context"
-	"github.com/gomlx/gomlx/ml/data/downloader"
+	"github.com/gomlx/go-huggingface/internal/downloader"
+	"github.com/gomlx/go-huggingface/internal/files"
 	"github.com/pkg/errors"
 	"log"
 	"math/rand"
@@ -30,7 +31,7 @@ func (r *Repo) getDownloadManager() *downloader.Manager {
 //
 // It uses a temporary filePath+".lock" to coordinate multiple processes/programs trying to download the same file at the same time.
 func (r *Repo) lockedDownload(ctx context.Context, url, filePath string, forceDownload bool, progressCallback downloader.ProgressCallback) error {
-	if fileExists(filePath) {
+	if files.Exists(filePath) {
 		if !forceDownload {
 			return nil
 		}
@@ -54,7 +55,7 @@ func (r *Repo) lockedDownload(ctx context.Context, url, filePath string, forceDo
 	lockPath := filePath + ".lock"
 	var mainErr error
 	errLock := execOnFileLock(lockPath, func() {
-		if fileExists(filePath) {
+		if files.Exists(filePath) {
 			// Some concurrent other process (or goroutine) already downloaded the file.
 			return
 		}

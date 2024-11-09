@@ -75,18 +75,6 @@ func getEnvOr(key, defaultValue string) string {
 	return v
 }
 
-// fileExists returns true if file or directory exists.
-func fileExists(filePath string) bool {
-	_, err := os.Stat(filePath)
-	if err == nil {
-		return true
-	}
-	if errors.Is(err, os.ErrNotExist) {
-		return false
-	}
-	panic(err)
-}
-
 // DefaultCacheDir for HuggingFace Hub, same used by the python library.
 //
 // Its prefix is either `${XDG_CACHE_HOME}` if set, or `~/.cache` otherwise. Followed by `/huggingface/hub/`.

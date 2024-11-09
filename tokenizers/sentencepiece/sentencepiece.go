@@ -39,16 +39,16 @@ type Tokenizer struct {
 // Compile time assert that sentencepiece.Tokenizer implements tokenizers.Tokenizer interface.
 var _ api.Tokenizer = &Tokenizer{}
 
-// EncodeAsIDs returns the text encoded into a sequence of ids.
+// Encode returns the text encoded into a sequence of ids.
 // It implements sampler.Vocabulary.
-func (p *Tokenizer) EncodeAsIDs(text string) []int {
+func (p *Tokenizer) Encode(text string) []int {
 	tokens := p.Processor.Encode(text)
 	return sliceMap(tokens, func(t esentencepiece.Token) int { return t.ID })
 }
 
-// DecodeIDs returns the text from a sequence of ids.
+// Decode returns the text from a sequence of ids.
 // It implements sampler.Vocabulary.
-func (p *Tokenizer) DecodeIDs(ids []int) string {
+func (p *Tokenizer) Decode(ids []int) string {
 	return p.Processor.Decode(ids)
 }
 

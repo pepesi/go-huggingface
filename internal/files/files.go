@@ -1,11 +1,19 @@
-package hub
+// Package files implements generic file tools missing from the standard library.
+package files
 
 import (
 	"github.com/pkg/errors"
+	"os"
 	"os/user"
 	"path"
 	"strings"
 )
+
+// Exists returns true if file or directory exists.
+func Exists(filePath string) bool {
+	_, err := os.Stat(filePath)
+	return err == nil
+}
 
 // ReplaceTildeInDir by the user's home directory. Returns dir if it doesn't start with "~".
 //
@@ -34,7 +42,7 @@ func ReplaceTildeInDir(dir string) (string, error) {
 		usr, err = user.Lookup(userName)
 	}
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to lookup home directory for user in path %q", dir)
+		return dir, errors.Wrapf(err, "failed to lookup home directory for user in path %q", dir)
 	}
 	homeDir := usr.HomeDir
 	return path.Join(homeDir, dir[1+len(userName):]), nil

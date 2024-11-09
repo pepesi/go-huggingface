@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/dustin/go-humanize"
+	"github.com/gomlx/go-huggingface/internal/files"
 	"github.com/pkg/errors"
 	"iter"
 	"net/http"
@@ -163,7 +164,7 @@ func (r *Repo) DownloadFiles(repoFiles ...string) (downloadedPaths []string, err
 		}
 		snapshotPath := path.Join(snapshotDir, relativeFilePath)
 		downloadedPaths[idxFile] = snapshotPath // This is the file pointer we are returning.
-		if fileExists(snapshotPath) {
+		if files.Exists(snapshotPath) {
 			// File already downloaded, skip.
 			continue
 		}
@@ -201,7 +202,7 @@ func (r *Repo) DownloadFiles(repoFiles ...string) (downloadedPaths []string, err
 
 			// blobPath: download only if it has already been downloaded.
 			blobPath := path.Join(repoCacheDir, "blobs", etag)
-			if !fileExists(blobPath) {
+			if !files.Exists(blobPath) {
 				requireDownload++ // This file require download.
 				err := r.lockedDownload(ctx, fileURL, blobPath, false, func(downloadedBytes, totalBytes int64) {
 					// Execute at every report of download.

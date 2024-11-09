@@ -2,7 +2,8 @@ package hub
 
 import (
 	"fmt"
-	"github.com/gomlx/gomlx/ml/data/downloader"
+	"github.com/gomlx/go-huggingface/internal/downloader"
+	"github.com/gomlx/go-huggingface/internal/files"
 	"github.com/pkg/errors"
 	"log"
 	"os"
@@ -84,7 +85,7 @@ func (r *Repo) WithRevision(repoType RepoType) *Repo {
 //
 // The default is given by DefaultCacheDir: `${XDG_CACHE_HOME}/huggingface/hub` if set, or `~/.cache/huggingface/hub` otherwise.
 func (r *Repo) WithCacheDir(cacheDir string) *Repo {
-	newCacheDir, err := ReplaceTildeInDir(cacheDir)
+	newCacheDir, err := files.ReplaceTildeInDir(cacheDir)
 	if err == nil {
 		r.cacheDir = path.Clean(newCacheDir)
 	} else {
@@ -117,7 +118,7 @@ func (r *Repo) flatFolderName() string {
 	return strings.Join(parts, RepoIdSeparator)
 }
 
-// repoCacheDir joins cacheDir and flatFolderName to return the cache sub-directory for the repository.
+// repoCacheDir joins cacheDir and flatFolderName to return the cache subdirectory for the repository.
 // It also creates the directory, and returns an error if creation failed.
 func (r *Repo) repoCacheDir() (string, error) {
 	dir := path.Join(r.cacheDir, r.flatFolderName())
