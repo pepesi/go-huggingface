@@ -4,4 +4,4 @@
 // The Model
 package protos
 
-//go:generate protoc --go_out=. --go_opt=paths=source_relative ./gomlx_go_huggingface_sentencepiece_model.proto
+//go:generate ./gen_protos.sh
