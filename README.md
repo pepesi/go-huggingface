@@ -7,8 +7,8 @@
 Simple APIs for downloading (`hub`), tokenizing (`tokenizers`) and (**future work**) model conversion (`models`) of 
 [HuggingFace🤗](huggingface.co) models using [GoMLX](https://github.com/gomlx/gomlx).
 
-🚧 **EXPERIMENTAL and IN DEVELOPMENT**: While the `hub` package has been stable, the `tokenizers` and the future `models` are still
-under intense development.
+🚧 **EXPERIMENTAL and IN DEVELOPMENT**: While the `hub` package has been stable. The `tokenizers` only supports
+SentencePiece models (saved as proto), but has been working. 
 
 ## Examples
 
@@ -150,3 +150,6 @@ Embeddings:	[2][7][384]float32{
   {0.4115, 1.0946, 0.2385, ..., 0.8984, 0.3684, -0.7333},
   {0.1374, 0.5555, 0.2678, ..., 0.5426, 0.4665, -0.5284}}}
 ```
+
+More examples, including downloading dataset files in `.parquet` format in the 
+[demo notebook.](https://github.com/gomlx/go-huggingface/blob/main/go-huggingface.ipynb).
