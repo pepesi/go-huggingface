@@ -28,4 +28,4 @@ const (
 	TokSpecialTokensCount
 )
 
-//go:generate enumer -type=SpecialToken -trimprefix=Tok -transform=snake -values -text -json -yaml tokenizers.go
+//go:generate enumer -type=SpecialToken -trimprefix=Tok -transform=snake -values -text -json -yaml api.go

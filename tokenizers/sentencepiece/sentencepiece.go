@@ -63,8 +63,9 @@ func (p *Tokenizer) SpecialTokenID(token api.SpecialToken) (int, error) {
 		return p.Info.BeginningOfSentenceID, nil
 	case api.TokEndOfSentence:
 		return p.Info.EndOfSentenceID, nil
+	default:
+		return 0, errors.Errorf("unknown special token: %s (%d)", token, int(token))
 	}
-	return 0, errors.Errorf("unknown special token: %s (%d)", token, token)
 }
 
 // sliceMap executes the given function sequentially for every element on in, and returns a mapped slice.
