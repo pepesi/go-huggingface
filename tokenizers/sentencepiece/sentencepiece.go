@@ -8,10 +8,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-func init() {
-}
-
-// New creates a tokenizer based on the tokenizer_config.json and tokenizer.json (vocabulary) files.
+// New creates a SentencePiece tokenizer based on the "tokenizer.model" file, which must be a
+// SentencePiece Model proto (see protos.Model).
+//
+// It implements a tokenizer.TokenizerConstructor function signature.
 func New(config *api.Config, repo *hub.Repo) (api.Tokenizer, error) {
 	if !repo.HasFile("tokenizer.model") {
 		return nil, errors.Errorf("\"tokenizer.model\" file not found in repo")

@@ -64,6 +64,8 @@ func New(id string) *Repo {
 }
 
 // WithAuth sets the authentication token to use during downloads.
+//
+// Setting it to empty ("") is the same as resetting and not using authentication.
 func (r *Repo) WithAuth(authToken string) *Repo {
 	r.authToken = authToken
 	return r
@@ -137,7 +139,11 @@ func (r *Repo) FileURL(fileName string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("https://huggingface.co/%s/resolve/%s/%s", r.ID, commitHash, fileName), nil
+	if r.repoType == RepoTypeModel {
+		return fmt.Sprintf("https://huggingface.co/%s/resolve/%s/%s", r.ID, commitHash, fileName), nil
+	} else {
+		return fmt.Sprintf("https://huggingface.co/%s/%s/resolve/%s/%s", r.repoType, r.ID, commitHash, fileName), nil
+	}
 }
 
 // readCommitHashForRevision finds the commit-hash for the revision, it should already be written to disk.
