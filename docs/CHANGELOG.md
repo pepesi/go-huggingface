@@ -1,9 +1,10 @@
 # `go-huggingface` Changelog
 
-## Next
+## v0.1.1
 
-* Added dataset example. 
 * Fixed URL resolution of non-model repos.
+* Fixed sentencepiece Tokenizer and tokenizer API string methods (using `enumer`).
+* Added dataset example. 
 * Added usage with Rust tokenizer.
 * Improved README.md
 * Added SentencePiece proto support -- to be used in future conversion of SentencePiece models.
