@@ -39,6 +39,8 @@ func (m *Manager) MaxParallel(n int) *Manager {
 
 // WithAuthToken sets the authentication token to use in the requests.
 // It is passed in the header "Authorization" and prefixed with "Bearer ".
+//
+// Setting it to empty ("") is the same as resetting and not using authentication.
 func (m *Manager) WithAuthToken(authToken string) *Manager {
 	m.authToken = authToken
 	return m

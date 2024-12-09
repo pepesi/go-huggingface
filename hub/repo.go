@@ -64,6 +64,8 @@ func New(id string) *Repo {
 }
 
 // WithAuth sets the authentication token to use during downloads.
+//
+// Setting it to empty ("") is the same as resetting and not using authentication.
 func (r *Repo) WithAuth(authToken string) *Repo {
 	r.authToken = authToken
 	return r
