@@ -2,7 +2,8 @@
 
 ## Next
 
-* Added dataset example.
+* Added dataset example. 
+* Fixed URL resolution of non-model repos.
 * Added usage with Rust tokenizer.
 * Improved README.md
 * Added SentencePiece proto support -- to be used in future conversion of SentencePiece models.
