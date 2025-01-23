@@ -78,8 +78,8 @@ func (r *Repo) WithType(repoType RepoType) *Repo {
 }
 
 // WithRevision sets the revision to use for this Repo, defaults to "main", but can be set to a commit-hash value.
-func (r *Repo) WithRevision(repoType RepoType) *Repo {
-	r.repoType = repoType
+func (r *Repo) WithRevision(revision string) *Repo {
+	r.revision = revision
 	return r
 }
 
