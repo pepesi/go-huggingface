@@ -47,6 +47,11 @@ type Repo struct {
 
 // New creates a reference to a HuggingFace model given its id.
 //
+// It uses the default cache directory in ${XDG_CACHE_HOME} (if set) or `~/.cache`, in a format that is
+// shared with huggingface-hub for python library. The cache is share across various programs, including Python
+// programs.
+// Use Repo.WithCacheDir to change it, or NewWithDir to use a plain directory structure, that is not shared across programs.
+//
 // The id typically include owner/model. E.g.: "google/gemma-2-2b-it"
 //
 // It defaults to being a RepoTypeModel repository. But you can change it with Repo.WithType.

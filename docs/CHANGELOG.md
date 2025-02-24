@@ -1,5 +1,9 @@
 # `go-huggingface` Changelog
 
+## Next
+
+* If verbosity is 0, it won't print progress.
+
 ## v0.1.1
 
 * Fixed URL resolution of non-model repos.
