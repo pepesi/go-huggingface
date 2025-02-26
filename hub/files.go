@@ -212,7 +212,7 @@ func (r *Repo) DownloadFiles(repoFiles ...string) (downloadedPaths []string, err
 					newDownloaded := uint64(downloadedBytes) - lastReportedBytes
 					allFilesDownloaded += newDownloaded
 					perFileDownloaded[idxFile] = uint64(downloadedBytes)
-					if time.Since(lastPrintTime) > time.Second {
+					if r.Verbosity > 0 && time.Since(lastPrintTime) > time.Second {
 						ratePrintFn()
 					}
 				})
@@ -223,7 +223,9 @@ func (r *Repo) DownloadFiles(repoFiles ...string) (downloadedPaths []string, err
 
 				// Done, print out progress.
 				numDownloadedFiles++
-				ratePrintFn()
+				if r.Verbosity > 0 {
+					ratePrintFn()
+				}
 			}
 
 			// Link blob file to snapshot.
@@ -235,11 +237,13 @@ func (r *Repo) DownloadFiles(repoFiles ...string) (downloadedPaths []string, err
 	}
 	wg.Wait()
 	if requireDownload > 0 {
-		if firstError != nil {
-			fmt.Println()
-		} else {
-			fmt.Printf("\rDownloaded %d/%d files, %s downloaded         \n",
-				numDownloadedFiles, requireDownload, humanize.Bytes(allFilesDownloaded))
+		if r.Verbosity > 0 {
+			if firstError != nil {
+				fmt.Println()
+			} else {
+				fmt.Printf("\rDownloaded %d/%d files, %s downloaded         \n",
+					numDownloadedFiles, requireDownload, humanize.Bytes(allFilesDownloaded))
+			}
 		}
 	}
 	if firstError != nil {
