@@ -153,6 +153,11 @@ func (r *Repo) repoCacheDir() (string, error) {
 	return dir, nil
 }
 
+func (r *Repo) RepoCacheDir() string {
+	dir := path.Join(r.cacheDir, r.flatFolderName())
+	return dir
+}
+
 // FileURL returns the URL from which to download the file from HuggingFace.
 //
 // Usually, not used directly (use DownloadFile instead), but in case someone needs for debugging.

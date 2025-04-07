@@ -3,9 +3,6 @@ package hub
 import (
 	"context"
 	"fmt"
-	"github.com/dustin/go-humanize"
-	"github.com/gomlx/go-huggingface/internal/files"
-	"github.com/pkg/errors"
 	"iter"
 	"net/http"
 	"os"
@@ -16,6 +13,10 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/dustin/go-humanize"
+	"github.com/gomlx/go-huggingface/internal/files"
+	"github.com/pkg/errors"
 )
 
 // IterFileNames iterate over the file names stored in the repo.
